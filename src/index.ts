@@ -9,10 +9,21 @@ const bot = new Client();
 
 const PREFIX = "!";
 
-const channels = JSON.parse(fs.readFileSync("./channels.json", "utf-8"));
+//const channels = JSON.parse(fs.readFileSync("./channels.json", "utf-8"));
 
 //let count = 0;
 //let countPath = "count.txt";
+
+const channelsStore = new FileStore<string[]>({
+  fileName: "channels.json",
+  defaultValue: [],
+  encoder: (d) => {
+    return JSON.stringify(d);
+  },
+  decoder: (d) => {
+    return JSON.parse(d);
+  },
+});
 
 const countStore = new FileStore<number>({
   fileName: "count.txt",
@@ -42,54 +53,52 @@ bot.once("ready", async () => {
 bot.on("message", async function (msg) {
   if (msg.guild === null) return;
 
-  for (let i = 0; i < channels.length; i++) {
-    if (msg.channel.id === channels[i]) {
-      msg.react("🪑");
-      await countStore.save((await countStore.get()) + 1);
-      bot.user.setActivity(`🪑 ${await countStore.get()} | Made by Salty Mat`);
+  if ((await channelsStore.get()).includes(msg.channel.id)) {
+    msg.react("🪑");
+    await countStore.save((await countStore.get()) + 1);
+    bot.user.setActivity(`🪑 ${await countStore.get()} | Made by Salty Mat`);
 
-      if (msg.author.bot) return;
+    if (msg.author.bot) return;
 
-      let profileData;
-      try {
-        profileData = await profileModel.findOne({
+    let profileData;
+    try {
+      profileData = await profileModel.findOne({
+        userID: msg.author.id,
+        serverID: msg.guild.id,
+      });
+      if (!profileData) {
+        let profile = await profileModel.create({
           userID: msg.author.id,
           serverID: msg.guild.id,
+          userName: msg.author.tag,
+          serverName: msg.guild.name,
+          serverPFP: msg.guild.iconURL(),
+          pfp: msg.author.avatarURL(),
+          chair_count: 0,
         });
-        if (!profileData) {
-          let profile = await profileModel.create({
-            userID: msg.author.id,
-            serverID: msg.guild.id,
-            userName: msg.author.tag,
-            serverName: msg.guild.name,
-            serverPFP: msg.guild.iconURL(),
-            pfp: msg.author.avatarURL(),
-            chair_count: 0,
-          });
-          profile.save();
-        }
-      } catch (err) {
-        console.log(err);
+        profile.save();
       }
-
-      const response = await profileModel.findOneAndUpdate(
-        {
-          userID: msg.author.id,
-          serverID: msg.guild.id,
-        },
-        {
-          $set: {
-            userName: msg.author.tag,
-            serverName: msg.guild.name,
-            serverPFP: msg.guild.iconURL(),
-            pfp: msg.author.avatarURL(),
-          },
-          $inc: {
-            chair_count: 1,
-          },
-        }
-      );
+    } catch (err) {
+      console.log(err);
     }
+
+    const response = await profileModel.findOneAndUpdate(
+      {
+        userID: msg.author.id,
+        serverID: msg.guild.id,
+      },
+      {
+        $set: {
+          userName: msg.author.tag,
+          serverName: msg.guild.name,
+          serverPFP: msg.guild.iconURL(),
+          pfp: msg.author.avatarURL(),
+        },
+        $inc: {
+          chair_count: 1,
+        },
+      }
+    );
   }
 });
 
@@ -183,38 +192,17 @@ bot.on("message", async function (msg) {
     message = "";
   } else if (msgLowercase == "!add") {
     if (msg.member.hasPermission("ADMINISTRATOR")) {
-      channels.push(msg.channel.id);
+      const currentChannels = await channelsStore.get();
+      await channelsStore.save([...currentChannels, msg.channel.id]);
       msg.channel.send("channel added ✅ ᶦ ᵗʰᶦⁿᵏ");
-
-      const jsonContent = JSON.stringify(channels);
-
-      fs.writeFile("./channels.json", jsonContent, "utf8", function (err) {
-        if (err) {
-          return console.log(err);
-        }
-
-        console.log("saved!");
-      });
     } else {
       msg.channel.send("you got no admin **>:(**");
     }
   } else if (msgLowercase == "!remove") {
     if (msg.member.hasPermission("ADMINISTRATOR")) {
-      for (let i = 0; i < channels.length; i++) {
-        if (channels[i] == msg.channel.id) {
-          channels.splice(i, parseInt(msg.channel.id));
-
-          const jsonContent = JSON.stringify(channels);
-
-          fs.writeFile("./channels.json", jsonContent, "utf8", function (err) {
-            if (err) {
-              return console.log(err);
-            }
-
-            console.log("saved!");
-          });
-        }
-      }
+      const currentChannels = await channelsStore.get();
+      const newChans = currentChannels.filter((val) => msg.channel.id !== val);
+      await channelsStore.save(newChans);
       msg.channel.send("channel removed ✅ ᶦ ᵗʰᶦⁿᵏ");
     } else {
       msg.channel.send("you got no admin **>:(**");
@@ -231,7 +219,7 @@ bot.on("message", async function (msg) {
       msg.channel.send("suggestion sent ✅ ᶦ ᵗʰᶦⁿᵏ");
     }
   } else if (msgLowercase == "!debug") {
-    msg.channel.send("```" + channels + "```");
+    msg.channel.send("```" + channelsStore.cache + "```");
     msg.channel.send(`🏓 API Latency is ${Math.round(bot.ws.ping)}ms`);
     console.log(`DEBUG HAS BEEN USE BY ${msg.author.tag}`);
   } else if (msgLowercase == "!commands" || msgLowercase == "!command") {
