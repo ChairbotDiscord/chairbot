@@ -3,6 +3,7 @@ import { Client, MessageEmbed } from "discord.js";
 import * as fs from "fs";
 import * as mongoose from "mongoose";
 import { profileModel } from "./data";
+import { FileStore } from "./file-store";
 
 const bot = new Client();
 
@@ -10,8 +11,19 @@ const PREFIX = "!";
 
 const channels = JSON.parse(fs.readFileSync("./channels.json", "utf-8"));
 
-let count = 0;
-let countPath = "count.txt";
+//let count = 0;
+//let countPath = "count.txt";
+
+const countStore = new FileStore<number>({
+  fileName: "count.txt",
+  defaultValue: 0,
+  encoder: (d) => {
+    return d.toString();
+  },
+  decoder: (d) => {
+    return parseInt(d);
+  },
+});
 
 mongoose
   .connect(process.env.MONGOOSE_DB, {
@@ -22,31 +34,19 @@ mongoose
   .then(() => console.log("MongoDB Connected..."))
   .catch(console.error);
 
-bot.once("ready", async function () {
+bot.once("ready", async () => {
   console.log("This bot is online");
-  bot.user.setActivity(`🪑 ${count} | Made by Salty Mat`);
-
-  if (fs.existsSync(countPath)) {
-    console.log("Loading chair count from file");
-
-    try {
-      count = Number(fs.readFileSync(countPath));
-      console.log("Sucessfully loaded " + count + " from file");
-    } catch (error) {
-      console.log("Failed to load the chair count because " + error);
-    }
-  } else console.log("Failed to load the chair count because the file was not found");
+  bot.user.setActivity(`🪑 ${await countStore.get()} | Made by Salty Mat`);
 });
 
 bot.on("message", async function (msg) {
   if (msg.guild === null) return;
+
   for (let i = 0; i < channels.length; i++) {
     if (msg.channel.id === channels[i]) {
       msg.react("🪑");
-      count++;
-      bot.user.setActivity(`🪑 ${count} | Made by Salty Mat`);
-
-      saveCountToFile();
+      await countStore.save((await countStore.get()) + 1);
+      bot.user.setActivity(`🪑 ${await countStore.get()} | Made by Salty Mat`);
 
       if (msg.author.bot) return;
 
@@ -271,10 +271,6 @@ bot.on("message", async (message) => {
     }
   }
 });
-
-async function saveCountToFile() {
-  fs.writeFileSync(countPath, count.toString());
-}
 
 const aboutEmbed = new MessageEmbed()
   .setColor("#78d6ff")
