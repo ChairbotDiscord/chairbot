@@ -8,6 +8,16 @@ import * as mongoose from "mongoose";
 //     chair_count: String,
 // });
 
+type Profile = {
+  userID: string;
+  serverID: string;
+  userName: string;
+  serverName: string;
+  serverPFP: string;
+  pfp: string;
+  chair_count: number;
+};
+
 const profileSchema = new mongoose.Schema({
   userID: { type: String, require: true },
   serverID: { type: String, require: true },
@@ -18,6 +28,4 @@ const profileSchema = new mongoose.Schema({
   chair_count: { type: Number, default: 0 },
 });
 
-const model = mongoose.model("ProfileModels", profileSchema);
-
-module.exports = model;
+export const profileModel = mongoose.model("ProfileModels", profileSchema);

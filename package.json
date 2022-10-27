@@ -5,7 +5,7 @@
   "main": "indexTS.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx src/index.ts -w"
+    "dev": "tsx watch src/index.ts"
   },
   "author": "Salty Mat",
   "license": "ISC",
