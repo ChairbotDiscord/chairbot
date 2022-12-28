@@ -1,11 +1,19 @@
 import "dotenv-safe/config";
-import { Client, MessageEmbed } from "discord.js";
+import { Client, GatewayIntentBits, EmbedBuilder } from "discord.js";
 import * as fs from "fs";
 import * as mongoose from "mongoose";
 import { profileModel } from "./data";
 import { FileStore } from "./file-store";
 
-const bot = new Client();
+const bot = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+  ],
+}
+);
 
 const PREFIX = "!";
 
@@ -50,11 +58,13 @@ bot.once("ready", async () => {
   bot.user.setActivity(`🪑 ${await countStore.get()} | Made by Salty Mat`);
 });
 
-bot.on("message", async function (msg) {
+bot.on("messageCreate", async function (msg) {
   if (msg.guild === null) return;
 
   if ((await channelsStore.get()).includes(msg.channel.id)) {
-    msg.react("🪑");
+    msg.react("🪑").catch(function (error) {
+      console.log(error)
+    });
     await countStore.save((await countStore.get()) + 1);
     bot.user.setActivity(`🪑 ${await countStore.get()} | Made by Salty Mat`);
 
@@ -102,7 +112,7 @@ bot.on("message", async function (msg) {
   }
 });
 
-bot.on("message", async function (msg) {
+bot.on("messageCreate", async function (msg) {
   if (msg.guild === null) return;
   let msgLowercase = msg.content.toLowerCase();
 
@@ -125,39 +135,34 @@ bot.on("message", async function (msg) {
       userID: msg.mentions.users.first().id,
       serverID: msg.guild.id,
     });
-  } catch (err) {}
+  } catch (err) { }
   if (msgLowercase.includes("chair")) {
     msg.channel.send("<:phrog:821089725816766536>");
     //msg.channel.send('<a:gmagik:726661980219506688>');
   } else if (!msgLowercase.startsWith(PREFIX)) {
     return;
   } else if (msgLowercase == "!count") {
-    const embed = new MessageEmbed()
+    const embed = new EmbedBuilder()
       .setColor("#78d6ff")
       //.setAuthor(`${msg.author.tag}`, msg.author.avatarURL())
       .setTitle(`${msg.author.username}'s chair count`)
       .setDescription(`**__chairs__**: ${profileData.chair_count}`)
       //.addField (`**${msg.author.username}'s chair count**`,`**chairs**: ${profileData.chair_count}`)
-      .setFooter(
-        "WARNING this is a beta your data might get deleted",
-        profileData.pfp
-      );
+      .setFooter({ text: "WARNING this is a beta your data might get deleted", iconURL: profileData.pfp });
 
-    msg.channel.send(embed);
+    msg.channel.send({ embeds: [embed] });
   } else if (msgLowercase.includes("!count ")) {
     try {
-      const embed = new MessageEmbed()
+      const embed = new EmbedBuilder()
         .setColor("#78d6ff")
         //.setAuthor(`${msg.author.tag}`, msg.author.avatarURL())
         .setTitle(`${msg.mentions.users.first().username}'s chair count`)
         .setDescription(`**__chairs__**: ${profileDataOther.chair_count}`)
         //.addField (`**${msg.author.username}'s chair count**`,`**chairs**: ${profileData.chair_count}`)
-        .setFooter(
-          "WARNING this is a beta your data might get deleted",
-          profileDataOther.pfp
+        .setFooter({ text: "WARNING this is a beta your data might get deleted", iconURL: profileDataOther.pfp }
         );
 
-      msg.channel.send(embed);
+      msg.channel.send({ embeds: [embed] });
     } catch (error) {
       msg.reply("you need to ping a valid person");
     }
@@ -167,10 +172,9 @@ bot.on("message", async function (msg) {
     msgLowercase == "!leaderbords"
   ) {
     leaderbord = await profileModel.find({ serverID: msg.guild.id });
-    let embed = new MessageEmbed()
+    let embed = new EmbedBuilder()
       .setFooter(
-        `${profileData.serverName} | WARNING this is a beta your data might get deleted`,
-        profileData.serverPFP
+        { text: `${profileData.serverName} | WARNING this is a beta your data might get deleted`, iconURL: profileData.serverPFP }
       )
       .setColor("#78d6ff")
       .setTitle(`${profileData.serverName}'s Chair count`);
@@ -181,17 +185,16 @@ bot.on("message", async function (msg) {
     );
 
     leaderbord.forEach((e: { userName: any; chair_count: any }) => {
-      message += `\n**${rank}** | **${e.userName.slice(0, -5)}** 🪑: ${
-        e.chair_count
-      }`;
+      message += `\n**${rank}** | **${e.userName.slice(0, -5)}** 🪑: ${e.chair_count
+        }`;
       rank++;
     });
     embed.setDescription(message);
-    msg.channel.send(embed);
+    msg.channel.send({ embeds: [embed] });
     rank = 1;
     message = "";
   } else if (msgLowercase == "!add") {
-    if (msg.member.hasPermission("ADMINISTRATOR")) {
+    if (msg.member.permissions.has("Administrator")) {
       const currentChannels = await channelsStore.get();
       await channelsStore.save([...currentChannels, msg.channel.id]);
       msg.channel.send("channel added ✅ ᶦ ᵗʰᶦⁿᵏ");
@@ -199,7 +202,7 @@ bot.on("message", async function (msg) {
       msg.channel.send("you got no admin **>:(**");
     }
   } else if (msgLowercase == "!remove") {
-    if (msg.member.hasPermission("ADMINISTRATOR")) {
+    if (msg.member.permissions.has("Administrator")) {
       const currentChannels = await channelsStore.get();
       const newChans = currentChannels.filter((val) => msg.channel.id !== val);
       await channelsStore.save(newChans);
@@ -227,43 +230,43 @@ bot.on("message", async function (msg) {
       "**!add\n!remove\n!about\n!suggest\n!uptime\n**i will make it look better later afjlafkkfds :char:"
     );
   } else if (msgLowercase == "!about") {
-    msg.channel.send(aboutEmbed);
+    msg.channel.send({ embeds: [aboutEmbed] });
   } else if (msgLowercase == "!uptime") {
     let days = Math.floor(bot.uptime / 86400000);
     let hours = Math.floor(bot.uptime / 3600000) % 24;
     let minutes = Math.floor(bot.uptime / 60000) % 60;
     let seconds = Math.floor(bot.uptime / 1000) % 60;
 
-    const embed = new MessageEmbed()
+    const embed = new EmbedBuilder()
       .setColor("#78d6ff")
-      .addField(
-        "**__uptime__**",
-        `**days**: ${days} \n**hours**: ${hours} \n**minutes**: ${minutes} \n**seconds**: ${seconds}`
+      .addFields({
+        name: "**__uptime__**",
+        value: `**days**: ${days} \n**hours**: ${hours} \n**minutes**: ${minutes} \n**seconds**: ${seconds}`
+      }
       );
 
-    msg.channel.send(embed);
+    msg.channel.send({ embeds: [embed] });
   }
 });
 
-const aboutEmbed = new MessageEmbed()
+const aboutEmbed = new EmbedBuilder()
   .setColor("#78d6ff")
   .setDescription(
     "this is my first bot i ever\nmade i hope you like the chairs :)"
   )
-  .setAuthor(
-    "Made by: Salty Mat",
-    "https://imgur.com/PWR3DeX.png",
-    "https://twitter.com/Salty_Mat"
+  .setAuthor({
+    name: "Made by: Salty Mat",
+    iconURL: "https://imgur.com/PWR3DeX.png",
+    url: "https://twitter.com/Salty_Mat"
+  }
   )
   .setTitle("About")
   .setThumbnail("https://imgur.com/ablIrp4.png")
-  .addField("Discord server", "coming soon")
-  .addField("website", "https://chairbot.xyz")
-  .addField("Email", "chairbot.discord@gmail.com")
-  .addField(
-    `contact me`,
-    `**twitter**: @Salty_Mat\n**Youtube**: Salty Mat\n**Discord**: Salt#0330 `
+  .addFields(
+    { name: "Discord server", value: "coming soon" },
+    { name: "Email", value: "chairbot.discord@gmail.com" },
+    { name: `contact me`, value: `**twitter**: @Salty_Mat\n**Youtube**: Salty Mat\n**Discord**: Salt#0330 ` }
   )
-  .setFooter("Chair bot was born at jun 10th 2020");
+  .setFooter({ text: "Chair bot was born at jun 10th 2020" });
 
 bot.login(process.env.DISCORD_TOKEN);
