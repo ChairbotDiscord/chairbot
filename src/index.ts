@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as mongoose from "mongoose";
 import { profileModel } from "./data";
 import { FileStore } from "./file-store";
+import { startCommands } from "./commandStarter";
 
 const bot = new Client({
   intents: [
@@ -56,6 +57,7 @@ mongoose
 bot.once("ready", async () => {
   console.log("This bot is online");
   bot.user.setActivity(`🪑 ${await countStore.get()} | Made by Salty Mat`);
+  startCommands();
 });
 
 bot.on("messageCreate", async function (msg) {
@@ -150,7 +152,7 @@ bot.on("messageCreate", async function (msg) {
       //.addField (`**${msg.author.username}'s chair count**`,`**chairs**: ${profileData.chair_count}`)
       .setFooter({ text: "WARNING this is a beta your data might get deleted", iconURL: profileData.pfp });
 
-    msg.channel.send({ embeds: [embed] });
+    msg.reply({ embeds: [embed] });
   } else if (msgLowercase.includes("!count ")) {
     try {
       const embed = new EmbedBuilder()
