@@ -5,13 +5,14 @@
   "main": "indexTS.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "prisma": "prisma"
   },
   "author": "Salty Mat",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^4.11.0",
     "@types/node": "^14.14.35",
-    "canvas": "^2.7.0",
     "discord.js": "^14.7.1",
     "dotenv-safe": "^8.2.0",
     "jsonfile": "^6.1.0",
