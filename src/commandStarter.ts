@@ -4,10 +4,12 @@ const commands = [
     {
         name: 'add',
         description: 'make it able to earn chairs from this channel',
+        default_member_permissions: '3'
     },
     {
         name: "remove",
-        description: "make this chnannel unable to earn chairs"
+        description: "make this chnannel unable to earn chairs",
+        default_member_permissions: '3'
     },
     {
         name: "count",
@@ -39,6 +41,10 @@ const commands = [
         description: "how long chairbot has been online for"
     },
     {
+        name: "debug",
+        description: "wanna get info about chairbot?"
+    },
+    {
         name: "suggest",
         description: "suggest somthing new to the chiarbot devs",
         options:[
@@ -59,7 +65,7 @@ export async function startCommands(){
     try {
         console.log('Started refreshing application (/) commands.');
     
-        await rest.put(Routes.applicationGuildCommands("730297032153104464", "173571661176504321"), { body: commands });
+        await rest.put(Routes.applicationCommands(process.env.APP_ID), { body: commands });
     
         console.log('Successfully reloaded application (/) commands.');
       } catch (error) {
