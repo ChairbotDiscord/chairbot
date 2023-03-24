@@ -36,4 +36,6 @@ model ServerProfile {
   server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
 
   @@id([userId, serverId])
+  @@index([serverId])
+  @@index([userId])
 }
