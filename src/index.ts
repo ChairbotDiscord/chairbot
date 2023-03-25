@@ -177,7 +177,6 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
 
   let rank = 1;
   let message: string = "";
-  let leaderbord;
 
   if (msgLowercase == "count" && msg.options.data.length === 0) {
     try {
@@ -248,7 +247,7 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
     }
   } else if (msgLowercase == "leaderboard") {
     //leaderbord = await profileModel.find({ serverID: msg.guild.id });
-    leaderbord = await db.serverProfile.findMany({
+    const leaderbord = await db.serverProfile.findMany({
       where: { serverId: msg.guild.id },
       include: {
         user: {
