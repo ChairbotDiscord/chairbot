@@ -87,6 +87,11 @@ bot.on("messageCreate", async function (msg) {
         discriminator: msg.author.discriminator,
         avatarUrl: msg.author.avatarURL(),
       };
+
+      const serverInfo = {
+        name: msg.guild.name,
+        avatarUrl: msg.guild.iconURL(),
+      };
       //upsert | create or update
       await db.serverProfile.upsert({
         where: {
@@ -99,8 +104,7 @@ bot.on("messageCreate", async function (msg) {
               where: { id: msg.guild.id },
               create: {
                 id: msg.guild.id,
-                name: msg.guild.name,
-                avatarUrl: msg.guild.iconURL(),
+                ...serverInfo,
               },
             },
           },
@@ -117,6 +121,7 @@ bot.on("messageCreate", async function (msg) {
         update: {
           chairCount: { increment: 1 },
           user: { update: userInfo },
+          server: { update: serverInfo },
         },
       });
     } catch (error) {
