@@ -179,61 +179,54 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
   let message: string = "";
   let leaderbord;
 
-  let profileData;
-  let profileDataOther;
-  try {
-    // profileData = await profileModel.findOne({
-    //   userID: msg.user.id,
-    //   serverID: msg.guild.id,
-    // });
-    profileData = await db.serverProfile.findUnique({
-      where: {
-        userId_serverId: { userId: msg.user.id, serverId: msg.guild.id },
-      },
-      include: {
-        user: {
-          select: { avatarUrl: true },
-        },
-        server: true,
-      },
-    });
-  } catch (err) {
-    console.log(err);
-  }
-  try {
-    profileDataOther = await db.serverProfile.findUnique({
-      where: {
-        userId_serverId: {
-          userId: msg.options.data[0].user.id,
-          serverId: msg.guild.id,
-        },
-      },
-      include: {
-        user: {
-          select: { avatarUrl: true },
-        },
-      },
-    });
-  } catch (err) {}
   if (msgLowercase == "count" && msg.options.data.length === 0) {
-    if (!profileData) {
-      msg.reply("you dont have any data");
-      return;
-    }
-    const embed = new EmbedBuilder()
-      .setColor("#78d6ff")
-      //.setAuthor(`${msg.author.tag}`, msg.author.avatarURL())
-      .setTitle(`${msg.user.username}'s chair count`)
-      .setDescription(`**__chairs__**: ${profileData.chairCount}`)
-      //.addField (`**${msg.author.username}'s chair count**`,`**chairs**: ${profileData.chair_count}`)
-      .setFooter({
-        text: "WARNING this is a beta your data might get deleted",
-        iconURL: profileData.user.avatarUrl,
+    try {
+      const profileData = await db.serverProfile.findUnique({
+        where: {
+          userId_serverId: { userId: msg.user.id, serverId: msg.guild.id },
+        },
+        include: {
+          user: {
+            select: { avatarUrl: true },
+          },
+          server: true,
+        },
       });
 
-    msg.reply({ embeds: [embed] });
+      if (!profileData) {
+        msg.reply("you dont have any data");
+        return;
+      }
+      const embed = new EmbedBuilder()
+        .setColor("#78d6ff")
+        //.setAuthor(`${msg.author.tag}`, msg.author.avatarURL())
+        .setTitle(`${msg.user.username}'s chair count`)
+        .setDescription(`**__chairs__**: ${profileData.chairCount}`)
+        //.addField (`**${msg.author.username}'s chair count**`,`**chairs**: ${profileData.chair_count}`)
+        .setFooter({
+          text: "WARNING this is a beta your data might get deleted",
+          iconURL: profileData.user.avatarUrl,
+        });
+
+      msg.reply({ embeds: [embed] });
+    } catch (err) {
+      console.log(err);
+    }
   } else if (msgLowercase == "count" && msg.options.data.length !== 0) {
     try {
+      const profileDataOther = await db.serverProfile.findUnique({
+        where: {
+          userId_serverId: {
+            userId: msg.options.data[0].user.id,
+            serverId: msg.guild.id,
+          },
+        },
+        include: {
+          user: {
+            select: { avatarUrl: true },
+          },
+        },
+      });
       if (!profileDataOther) {
         msg.reply("they dont have any data");
         return;
