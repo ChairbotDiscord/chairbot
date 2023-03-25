@@ -82,6 +82,12 @@ bot.on("messageCreate", async function (msg) {
 
     if (msg.author.bot) return;
     try {
+      const userInfo = {
+        username: msg.author.username,
+        discriminator: msg.author.discriminator,
+        avatarUrl: msg.author.avatarURL(),
+      };
+      //upsert | create or update
       await db.serverProfile.upsert({
         where: {
           userId_serverId: { serverId: msg.guild.id, userId: msg.author.id },
@@ -103,14 +109,15 @@ bot.on("messageCreate", async function (msg) {
               where: { id: msg.author.id },
               create: {
                 id: msg.author.id,
-                username: msg.author.username,
-                discriminator: msg.author.discriminator,
-                avatarUrl: msg.author.avatarURL(),
+                ...userInfo,
               },
             },
           },
         },
-        update: { chairCount: { increment: 1 } },
+        update: {
+          chairCount: { increment: 1 },
+          user: { update: userInfo },
+        },
       });
     } catch (error) {
       console.error("failed to update user chairs count", error);
