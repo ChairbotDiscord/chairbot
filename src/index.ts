@@ -216,6 +216,10 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
     });
   } catch (err) {}
   if (msgLowercase == "count" && msg.options.data.length === 0) {
+    if (!profileData) {
+      msg.reply("you dont have any data");
+      return;
+    }
     const embed = new EmbedBuilder()
       .setColor("#78d6ff")
       //.setAuthor(`${msg.author.tag}`, msg.author.avatarURL())
@@ -230,6 +234,10 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
     msg.reply({ embeds: [embed] });
   } else if (msgLowercase == "count" && msg.options.data.length !== 0) {
     try {
+      if (!profileDataOther) {
+        msg.reply("they dont have any data");
+        return;
+      }
       const embed = new EmbedBuilder()
         .setColor("#78d6ff")
         //.setAuthor(`${msg.author.tag}`, msg.author.avatarURL())
@@ -257,11 +265,11 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
     });
     let embed = new EmbedBuilder()
       .setFooter({
-        text: `${profileData.server.name} | WARNING this is a beta your data might get deleted`,
-        iconURL: profileData.server.avatarUrl,
+        text: `${msg.guild.name} | WARNING this is a beta your data might get deleted`,
+        iconURL: msg.guild.iconURL(),
       })
       .setColor("#78d6ff")
-      .setTitle(`${profileData.server.name}'s Chair count`);
+      .setTitle(`${msg.guild.name}'s Chair count`);
 
     leaderbord.sort((a, b) => b.chairCount - a.chairCount);
 
