@@ -23,19 +23,6 @@ const bot = new Client({
   ],
 });
 
-const PREFIX = "!";
-
-const countStore = new FileStore<number>({
-  fileName: "count.txt",
-  defaultValue: 0,
-  encoder: (d) => {
-    return d.toString();
-  },
-  decoder: (d) => {
-    return parseInt(d);
-  },
-});
-
 // mongoose
 //   .connect(process.env.MONGOOSE_DB, {
 //     useNewUrlParser: true,
@@ -50,6 +37,7 @@ const redis = new Redis({
   token: env.UPSTASH_REDIS_TOKEN,
 });
 
+const CHAIR_COUNT_KEY = "chairs_count";
 const CHANNEL_PREFIX = "chan:";
 
 const db = new PrismaClient({ log: ["error", "warn", "query", "info"] });
@@ -59,7 +47,9 @@ db.$connect()
 
 bot.once("ready", async () => {
   console.log("This bot is online");
-  bot.user.setActivity(`🪑 ${await countStore.get()} | Made by Salty Mat`);
+  bot.user.setActivity(
+    `🪑 ${(await redis.get<number>(CHAIR_COUNT_KEY)) || 0} | Made by Salty Mat`
+  );
   startCommands();
 });
 
@@ -77,8 +67,11 @@ bot.on("messageCreate", async function (msg) {
     msg.react("🪑").catch(function (error) {
       console.log(error);
     });
-    await countStore.save((await countStore.get()) + 1);
-    bot.user.setActivity(`🪑 ${await countStore.get()} | Made by Salty Mat`);
+
+    const newCount = await redis.incr(CHAIR_COUNT_KEY);
+    const newPresence = bot.user.setActivity(
+      `🪑 ${newCount} | Made by Salty Mat`
+    );
 
     if (msg.author.bot) return;
     try {
