@@ -1,11 +1,10 @@
-import "dotenv-safe/config";
+import { env } from "./env";
 import {
   Client,
   GatewayIntentBits,
   EmbedBuilder,
   ChatInputCommandInteraction,
 } from "discord.js";
-import * as fs from "fs";
 import { FileStore } from "./file-store";
 import { startCommands } from "./commandStarter";
 import { PrismaClient } from "@prisma/client";
@@ -349,4 +348,4 @@ const aboutEmbed = new EmbedBuilder()
   )
   .setFooter({ text: "Chair bot was born at jun 10th 2020" });
 
-bot.login(process.env.DISCORD_TOKEN);
+bot.login(env.DISCORD_TOKEN);
