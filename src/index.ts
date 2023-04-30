@@ -8,6 +8,11 @@ import {
 import { FileStore } from "./file-store";
 import { startCommands } from "./commandStarter";
 import { PrismaClient } from "@prisma/client";
+/*  
+  you don't need to use upstash redis 
+  the api is the same as the 'redis' package if you want to self host it
+*/
+import { Redis } from "@upstash/redis";
 
 const bot = new Client({
   intents: [
@@ -19,17 +24,6 @@ const bot = new Client({
 });
 
 const PREFIX = "!";
-
-const channelsStore = new FileStore<string[]>({
-  fileName: "channels.json",
-  defaultValue: [],
-  encoder: (d) => {
-    return JSON.stringify(d);
-  },
-  decoder: (d) => {
-    return JSON.parse(d);
-  },
-});
 
 const countStore = new FileStore<number>({
   fileName: "count.txt",
@@ -50,6 +44,13 @@ const countStore = new FileStore<number>({
 //   })
 //   .then(() => console.log("MongoDB Connected..."))
 //   .catch(console.error);
+
+const redis = new Redis({
+  url: env.UPSTASH_REDIS_URL,
+  token: env.UPSTASH_REDIS_TOKEN,
+});
+
+const CHANNEL_PREFIX = "chan:";
 
 const db = new PrismaClient({ log: ["error", "warn", "query", "info"] });
 db.$connect()
@@ -72,7 +73,7 @@ bot.on("messageCreate", async function (msg) {
     //msg.channel.send('<a:gmagik:726661980219506688>');
   }
 
-  if ((await channelsStore.get()).includes(msg.channel.id)) {
+  if (await redis.get(CHANNEL_PREFIX + msg.channel.id)) {
     msg.react("🪑").catch(function (error) {
       console.log(error);
     });
@@ -275,13 +276,10 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
     rank = 1;
     message = "";
   } else if (msgLowercase == "add") {
-    const currentChannels = await channelsStore.get();
-    await channelsStore.save([...currentChannels, msg.channel.id]);
+    await redis.set(CHANNEL_PREFIX + msg.channel.id, true);
     msg.reply("channel added ✅ ᶦ ᵗʰᶦⁿᵏ");
   } else if (msgLowercase == "remove") {
-    const currentChannels = await channelsStore.get();
-    const newChans = currentChannels.filter((val) => msg.channel.id !== val);
-    await channelsStore.save(newChans);
+    await redis.del(CHANNEL_PREFIX + msg.channel.id);
     msg.reply("channel removed ✅ ᶦ ᵗʰᶦⁿᵏ");
   } else if (msgLowercase == "developer") {
     msg.reply("https://imgur.com/a/CGOkqSE");
@@ -298,7 +296,7 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
     );
     msg.reply("suggestion sent ✅ ᶦ ᵗʰᶦⁿᵏ");
   } else if (msgLowercase == "debug") {
-    const currentChannels = await channelsStore.get();
+    const currentChannels = await redis.keys(CHANNEL_PREFIX + "*");
     msg.reply(
       "```" +
         currentChannels +
