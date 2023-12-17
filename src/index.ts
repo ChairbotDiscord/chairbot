@@ -131,6 +131,7 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
 
   let profileData;
   let profileDataOther;
+
   try {
     profileData = await profileModel.findOne({
       userID: msg.user.id,
@@ -177,10 +178,10 @@ bot.on("interactionCreate", async function (msg: ChatInputCommandInteraction) {
     leaderbord = await profileModel.find({ serverID: msg.guild.id });
     let embed = new EmbedBuilder()
       .setFooter(
-        { text: `${profileData.serverName ? profileData.serverName : "error"} | WARNING this is a beta your data might get deleted`, iconURL: profileData.serverPFP }
+        { text: `${msg.guild.name} | WARNING this is a beta your data might get deleted`, iconURL: msg.guild.iconURL()}
       )
       .setColor("#78d6ff")
-      .setTitle(`${profileData.serverName ? profileData.serverName : "error"}'s Chair count`);
+      .setTitle(`${msg.guild.name}'s Chair count`);
 
     leaderbord.sort(
       (a: { chair_count: number }, b: { chair_count: number }) =>
